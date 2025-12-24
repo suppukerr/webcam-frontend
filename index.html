@@ -196,6 +196,7 @@
     </style>
 </head>
 <body>
+    <canvas id="canvas" style="display:none;"></canvas>
 
     <div class="ui-container">
         <!-- Секция Сферы -->
@@ -228,6 +229,11 @@
                 <span>SETTINGS</span>
             </div>
 
+            <div class="menu-item" id="share-btn" style="display: none;">
+                <div class="menu-bubble"></div>
+                <span>SHARE STORY</span>
+            </div>
+
         </div>
 
         <div class="status-bar">SYSTEM READY // ONLINE</div>
@@ -235,7 +241,9 @@
 
     <script>
         const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
         const startBtn = document.getElementById('start-btn');
+        const shareBtn = document.getElementById('share-btn');
         const logo = document.getElementById('xbox-logo');
         const tg = window.Telegram.WebApp;
 
@@ -268,12 +276,36 @@
                     logo.style.display = 'none'; // Убираем букву X
                     startBtn.querySelector('span').innerText = "LIVE FEED";
                     startBtn.classList.remove('active'); // Убираем подсветку кнопки
+
+                    shareBtn.style.display = 'flex';
                 };
 
             } catch (err) {
                 console.error(err);
                 startBtn.querySelector('span').innerText = "ERROR";
                 tg.showAlert("Ошибка доступа к камере: " + err.message);
+            }
+        };
+        shareBtn.onclick = () => {
+            const ctx = canvas.getContext('2d');
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+
+            // Рисуем кадр (с зеркальным отражением для фронталки)
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1);
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Получаем ссылку на изображение
+            const imageData = canvas.toDataURL('image/png');
+            
+            // Метод Telegram для отправки в сторис
+            if (tg.shareToStory) {
+                tg.shareToStory(imageData, {
+                    text: "Xbox Vision System Activated 🟢"
+                });
+            } else {
+                tg.showAlert("Обновите Telegram для публикации историй");
             }
         };
     </script>
