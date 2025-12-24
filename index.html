@@ -287,27 +287,35 @@
             }
         };
         shareBtn.onclick = () => {
+        console.log("Клик по кнопке Share"); // Это уйдет в логи
+        
+        try {
             const ctx = canvas.getContext('2d');
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
 
-            // Рисуем кадр (с зеркальным отражением для фронталки)
+            // Рисуем кадр
             ctx.translate(canvas.width, 0);
             ctx.scale(-1, 1);
             ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-            // Получаем ссылку на изображение
+            // Создаем картинку
             const imageData = canvas.toDataURL('image/png');
             
-            // Метод Telegram для отправки в сторис
+            // ПРОВЕРКА: Если метод существует — запускаем
             if (tg.shareToStory) {
                 tg.shareToStory(imageData, {
                     text: "Xbox Vision System Activated 🟢"
                 });
             } else {
-                tg.showAlert("Обновите Telegram для публикации историй");
+                // Если метода нет, мы увидим это сообщение на экране
+                tg.showAlert("Ошибка: Твой Telegram не поддерживает Stories из Mini Apps. Обнови приложение!");
             }
-        };
+        } catch (err) {
+            // Если код упадет с ошибкой, мы увидим её причину
+            tg.showAlert("Ошибка выполнения: " + err.message);
+        }
+    };
     </script>
 </body>
 </html>
