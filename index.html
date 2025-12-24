@@ -198,6 +198,8 @@
 <body>
     <canvas id="canvas" style="display:none;"></canvas>
 
+    <video id="video" autoplay playsinline muted></video>
+
     <div class="ui-container">
         <!-- Секция Сферы -->
         <div class="orb-wrapper">
@@ -257,33 +259,31 @@
 
         startBtn.onclick = async () => {
             try {
-                // Визуальный эффект нажатия
-                startBtn.querySelector('span').innerText = "INITIALIZING...";
-                
-                const stream = await navigator.mediaDevices.getUserMedia({ 
+                // Указываем более гибкие настройки для мобильных устройств
+                const constraints = { 
                     video: { 
-                        facingMode: "user", // Фронтальная камера
-                        width: { ideal: 640 },
-                        height: { ideal: 640 }
+                        facingMode: "user",
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
                     },
-                    audio: false
-                });
-
-                video.srcObject = stream;
-                
-                // Когда видео пошло
-                video.onloadedmetadata = () => {
-                    logo.style.display = 'none'; // Убираем букву X
-                    startBtn.querySelector('span').innerText = "LIVE FEED";
-                    startBtn.classList.remove('active'); // Убираем подсветку кнопки
-
-                    shareBtn.style.display = 'flex';
+                    audio: false 
                 };
 
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+                video.srcObject = stream;
+                
+                // Обязательно для Android/iOS: вызываем play() вручную
+                await video.play();
+
+                video.onloadedmetadata = () => {
+                    logo.style.display = 'none';
+                    startBtn.querySelector('span').innerText = "LIVE FEED";
+                    shareBtn.style.display = 'flex'; 
+                };
             } catch (err) {
                 console.error(err);
-                startBtn.querySelector('span').innerText = "ERROR";
-                tg.showAlert("Ошибка доступа к камере: " + err.message);
+                // Выводим конкретную ошибку на экран, чтобы понять причину
+                tg.showAlert("Ошибка камеры: " + err.name + " - " + err.message);
             }
         };
         shareBtn.onclick = () => {
