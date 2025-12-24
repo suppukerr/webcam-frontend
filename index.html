@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Xbox Camera Interface</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --xbox-green: #9bf00b;
+            --xbox-dark: #0f1a05;
+            --xbox-glow: #388e3c;
+        }
+
+        body {
+            background-color: #000;
+            background-image: 
+                radial-gradient(circle at 30% 30%, rgba(20, 50, 0, 0.8), #000 70%),
+                linear-gradient(0deg, transparent 24%, rgba(0, 255, 0, .05) 25%, rgba(0, 255, 0, .05) 26%, transparent 27%, transparent 74%, rgba(0, 255, 0, .05) 75%, rgba(0, 255, 0, .05) 76%, transparent 77%, transparent),
+                linear-gradient(90deg, transparent 24%, rgba(0, 255, 0, .05) 25%, rgba(0, 255, 0, .05) 26%, transparent 27%, transparent 74%, rgba(0, 255, 0, .05) 75%, rgba(0, 255, 0, .05) 76%, transparent 77%, transparent);
+            background-size: 100% 100%, 50px 50px, 50px 50px;
+            color: #fff;
+            font-family: 'Orbitron', sans-serif;
+            margin: 0;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Эффект старого монитора (scanlines) */
+        body::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 100;
+            background-size: 100% 2px, 3px 100%;
+            pointer-events: none;
+        }
+
+        /* Контейнер интерфейса */
+        .ui-container {
+            position: relative;
+            width: 100%;
+            max-width: 500px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        /* СФЕРА (Камера) */
+        .orb-wrapper {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            margin-bottom: 40px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Вращающиеся кольца вокруг сферы */
+        .ring {
+            position: absolute;
+            border-radius: 50%;
+            border: 2px solid rgba(155, 240, 11, 0.3);
+            box-shadow: 0 0 10px var(--xbox-glow);
+        }
+        .ring-1 { width: 110%; height: 110%; animation: spin 10s linear infinite; border-top-color: var(--xbox-green); }
+        .ring-2 { width: 130%; height: 130%; animation: spin-rev 15s linear infinite; border-left-color: var(--xbox-green); }
+        
+        /* Сама камера внутри сферы */
+        .camera-orb {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: #000;
+            border: 6px solid var(--xbox-green);
+            box-shadow: 
+                0 0 30px var(--xbox-green), 
+                inset 0 0 40px #000;
+            overflow: hidden;
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Видео поток */
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.8; /* Чуть прозрачное чтобы смешаться с зеленым фоном */
+            filter: sepia(100%) hue-rotate(50deg) saturate(300%) contrast(1.2); /* Зеленый фильтр */
+            transform: scaleX(-1); /* Зеркальное отражение */
+        }
+        
+        /* "Блик" на стекле сферы */
+        .shine {
+            position: absolute;
+            top: 10%;
+            left: 20%;
+            width: 30%;
+            height: 20%;
+            background: radial-gradient(circle, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 70%);
+            border-radius: 50%;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        /* МЕНЮ (Кнопки) */
+        .menu-list {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end; /* Выравнивание по правому краю как на картинке */
+            width: 90%;
+            gap: 15px;
+        }
+
+        .menu-item {
+            position: relative;
+            background: linear-gradient(90deg, rgba(0,0,0,0.8) 0%, rgba(20, 50, 0, 0.9) 100%);
+            border: 1px solid var(--xbox-green);
+            border-radius: 0 10px 10px 0;
+            padding: 12px 20px;
+            width: 100%;
+            max-width: 300px;
+            text-align: right;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 14px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 0 5px rgba(155, 240, 11, 0.2);
+            /* Скос кнопки */
+            clip-path: polygon(10% 0, 100% 0, 100% 100%, 0% 100%); 
+        }
+
+        .menu-item:hover, .menu-item.active {
+            background: var(--xbox-green);
+            color: #000;
+            box-shadow: 0 0 20px var(--xbox-green);
+            padding-right: 30px;
+        }
+
+        /* Кружок слева от кнопки (имитация "пузыря" из меню Xbox) */
+        .menu-bubble {
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle, var(--xbox-green) 20%, #000 90%);
+            border-radius: 50%;
+            border: 2px solid var(--xbox-green);
+            margin-right: 10px;
+            box-shadow: 0 0 10px var(--xbox-green);
+        }
+
+        /* Анимации */
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes spin-rev { 0% { transform: rotate(360deg); } 100% { transform: rotate(0deg); } }
+
+        /* Состояние "Выключено" для камеры */
+        .placeholder-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: var(--xbox-green);
+            text-shadow: 0 0 10px var(--xbox-green);
+            font-size: 40px;
+            font-weight: 900;
+            z-index: 1;
+        }
+
+        .status-bar {
+            position: absolute;
+            bottom: 20px;
+            font-size: 10px;
+            opacity: 0.7;
+            letter-spacing: 1px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="ui-container">
+        <!-- Секция Сферы -->
+        <div class="orb-wrapper">
+            <div class="ring ring-1"></div>
+            <div class="ring ring-2"></div>
+            
+            <div class="camera-orb">
+                <div class="shine"></div>
+                <div class="placeholder-text" id="xbox-logo">X</div>
+                <video id="video" autoplay playsinline></video>
+            </div>
+        </div>
+
+        <!-- Секция Меню -->
+        <div class="menu-list">
+            
+            <div class="menu-item active" id="start-btn">
+                <div class="menu-bubble"></div>
+                <span>ACTIVATE CAM</span>
+            </div>
+
+            <div class="menu-item" onclick="alert('Функция в разработке')">
+                <div class="menu-bubble"></div>
+                <span>MEMORY</span>
+            </div>
+
+            <div class="menu-item" onclick="alert('Функция в разработке')">
+                <div class="menu-bubble"></div>
+                <span>SETTINGS</span>
+            </div>
+
+        </div>
+
+        <div class="status-bar">SYSTEM READY // ONLINE</div>
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const startBtn = document.getElementById('start-btn');
+        const logo = document.getElementById('xbox-logo');
+        const tg = window.Telegram.WebApp;
+
+        // Инициализация
+        tg.expand();
+        tg.MainButton.hide(); // Скрываем стандартную кнопку TG, у нас свой дизайн
+        
+        // Настройка внешнего вида под тему приложения
+        tg.setHeaderColor('#000000');
+        tg.setBackgroundColor('#000000');
+
+        startBtn.onclick = async () => {
+            try {
+                // Визуальный эффект нажатия
+                startBtn.querySelector('span').innerText = "INITIALIZING...";
+                
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { 
+                        facingMode: "user", // Фронтальная камера
+                        width: { ideal: 640 },
+                        height: { ideal: 640 }
+                    },
+                    audio: false
+                });
+
+                video.srcObject = stream;
+                
+                // Когда видео пошло
+                video.onloadedmetadata = () => {
+                    logo.style.display = 'none'; // Убираем букву X
+                    startBtn.querySelector('span').innerText = "LIVE FEED";
+                    startBtn.classList.remove('active'); // Убираем подсветку кнопки
+                };
+
+            } catch (err) {
+                console.error(err);
+                startBtn.querySelector('span').innerText = "ERROR";
+                tg.showAlert("Ошибка доступа к камере: " + err.message);
+            }
+        };
+    </script>
+</body>
+</html>
