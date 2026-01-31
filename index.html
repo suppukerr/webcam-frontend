@@ -7,234 +7,150 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --xbox-green: #9bf00b;
-            --xbox-dark: #0f1a05;
-            --xbox-glow: #388e3c;
+        body{
+            margin:0;
+            height:100vh;
+            display:grid;
+            place-items:center;
+            background:#000;
+            overflow:hidden;
         }
 
-        body {
-            background-color: #000;
-            background-image: 
-                radial-gradient(circle at 30% 30%, rgba(20, 50, 0, 0.8), #000 70%),
-                linear-gradient(0deg, transparent 24%, rgba(0, 255, 0, .05) 25%, rgba(0, 255, 0, .05) 26%, transparent 27%, transparent 74%, rgba(0, 255, 0, .05) 75%, rgba(0, 255, 0, .05) 76%, transparent 77%, transparent),
-                linear-gradient(90deg, transparent 24%, rgba(0, 255, 0, .05) 25%, rgba(0, 255, 0, .05) 26%, transparent 27%, transparent 74%, rgba(0, 255, 0, .05) 75%, rgba(0, 255, 0, .05) 76%, transparent 77%, transparent);
-            background-size: 100% 100%, 50px 50px, 50px 50px;
-            color: #fff;
-            font-family: 'Orbitron', sans-serif;
-            margin: 0;
-            height: 100vh;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+        /* Контейнер устройства */
+        .app{
+            position:relative;
+            width:min(420px, 92vw);
+            aspect-ratio: 3 / 4.25;
         }
 
-        body::after {
-            content: " ";
-            display: block;
-            position: absolute;
-            top: 0; left: 0; bottom: 0; right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            z-index: 100;
-            background-size: 100% 2px, 3px 100%;
-            pointer-events: none;
+        /* PNG-слои */
+        .layer{
+            position:absolute;
+            inset:0;
+            background-repeat:no-repeat;
+            background-position:center;
+            background-size:contain;
+            pointer-events:none;
+        }
+        .bg{  z-index: 0; color: #333; }
+        .body{ z-index: 2; background-image:url("maket/body.png"); }
+
+        /* ЭКРАН: абсолютная позиция + круглая маска */
+        .screen{
+            z-index: 1;
+            position:absolute;
+            left:50%;
+            top:10%;
+            width:74%;
+            aspect-ratio:1/1;
+            transform:translateX(-50%);
+
+            border-radius:50%;
+            overflow:hidden;          /* маска круга */
+            pointer-events:none;      /* экран не должен перехватывать клики по кнопкам */
         }
 
-        .ui-container {
-            position: relative;
-            width: 100%;
-            max-width: 500px;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 10;
+        .screen img,
+        .screen video{
+            position:absolute;
+            inset:0;
+            width:100%;
+            height:100%;
+            object-fit:cover;
         }
 
-        .orb-wrapper {
-            position: relative;
-            width: 280px;
-            height: 280px;
-            margin-bottom: 40px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        /* видео скрыто по умолчанию */
+        .screen video{
+            display:none;
+            transform:scaleX(-1);
         }
 
-        .ring {
-            position: absolute;
-            border-radius: 50%;
-            border: 2px solid rgba(155, 240, 11, 0.3);
-            box-shadow: 0 0 10px var(--xbox-glow);
+        /* лёгкий блик/эффект, если нужно */
+        .screenFx{
+            position:absolute;
+            inset:0;
+            background:linear-gradient(135deg, rgba(255,255,255,.18), transparent 45%);
+            mix-blend-mode:screen;
+            opacity:.35;
+            pointer-events:none;
+            
         }
-        .ring-1 { width: 110%; height: 110%; animation: spin 10s linear infinite; border-top-color: var(--xbox-green); }
-        .ring-2 { width: 130%; height: 130%; animation: spin-rev 15s linear infinite; border-left-color: var(--xbox-green); }
-        
-        .camera-orb {
-            width: 100%;
-            height: 100%;
-            border-radius: 50%;
-            background: #000;
-            border: 6px solid var(--xbox-green);
-            box-shadow: 0 0 30px var(--xbox-green), inset 0 0 40px #000;
-            overflow: hidden;
-            position: relative;
-            z-index: 2;
+        .btn.active{ filter: brightness(1.08); }
+
+        /* КНОПКИ: кликабельные PNG */
+        .btn{
+            z-index: 3;
+            position:absolute;
+            border:none;
+            background:transparent;
+            cursor:pointer;
+            padding:0;
         }
 
-        video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            opacity: 0.9;
-            filter: sepia(100%) hue-rotate(50deg) saturate(300%) contrast(1.2);
-            transform: scaleX(-1);
-        }
-        
-        .shine {
-            position: absolute;
-            top: 10%; left: 20%; width: 30%; height: 20%;
-            background: radial-gradient(circle, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 70%);
-            border-radius: 50%;
-            z-index: 5;
-            pointer-events: none;
+        /* большая кнопка */
+        .big{
+            width:32%;
+            aspect-ratio:1/1;
+            left:50%;
+            bottom:11.5%;
+            transform:translateX(-50%);
+            background:url("maket/big_button.png") no-repeat center/contain;
         }
 
-        .menu-list {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            width: 90%;
-            gap: 15px;
+        /* малые */
+        .small{
+            width:15%;
+            aspect-ratio:1/1;
+            background-repeat:no-repeat;
+            background-position:center;
+            background-size:contain;
         }
 
-        .menu-item {
-            position: relative;
-            background: linear-gradient(90deg, rgba(0,0,0,0.8) 0%, rgba(20, 50, 0, 0.9) 100%);
-            border: 1px solid var(--xbox-green);
-            padding: 12px 20px;
-            width: 100%;
-            max-width: 260px;
-            text-align: right;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            font-size: 14px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            clip-path: polygon(10% 0, 100% 0, 100% 100%, 0% 100%); 
-        }
-
-        .menu-item:hover, .menu-item.active {
-            background: var(--xbox-green);
-            color: #000;
-            box-shadow: 0 0 20px var(--xbox-green);
-        }
-
-        .menu-bubble {
-            width: 24px;
-            height: 24px;
-            background: radial-gradient(circle, var(--xbox-green) 20%, #000 90%);
-            border-radius: 50%;
-            border: 2px solid var(--xbox-green);
-            box-shadow: 0 0 5px var(--xbox-green);
-        }
-
-        /* MEMORY OVERLAY */
-        #memory-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9);
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 200;
-        }
-
-        #memory-image {
-            width: 80%;
-            border: 2px solid var(--xbox-green);
-            border-radius: 10px;
-            margin-bottom: 20px;
-        }
-
-        .close-btn {
-            background: var(--xbox-green);
-            color: #000;
-            padding: 10px 20px;
-            border: none;
-            font-family: 'Orbitron';
-            font-weight: bold;
-            clip-path: polygon(10% 0, 100% 0, 100% 100%, 0% 100%);
-        }
-
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @keyframes spin-rev { 0% { transform: rotate(360deg); } 100% { transform: rotate(0deg); } }
-
-        .placeholder-text {
-            position: absolute;
-            top: 50%; left: 50%; transform: translate(-50%, -50%);
-            color: var(--xbox-green);
-            font-size: 40px; font-weight: 900; z-index: 1;
-        }
-
-        .status-bar {
-            position: absolute; bottom: 20px; font-size: 10px; opacity: 0.7; letter-spacing: 1px;
-        }
+        /* позиции подгонишь */
+        .s1{ left:21%;  bottom:25%; background-image:url("maket/small_1.png"); }
+        .s2{ right:21%; bottom:25%; background-image:url("maket/small_2.png"); }
+        .s3{ left:21%;  bottom:10%; background-image:url("maket/small_3.png"); }
+        .s4{ right: 21%; bottom:10%; background-image:url("maket/small_4.png"); }
     </style>
 </head>
 <body>
     <canvas id="canvas" style="display:none;"></canvas>
 
-    <div id="memory-overlay">
+    <!-- <div id="memory-overlay">
         <h2 style="color: var(--xbox-green)">MEMORY SLOT 01</h2>
         <img id="memory-image" src="" alt="Capture">
         <div style="display: flex; gap: 10px;">
             <button class="close-btn" id="download-btn">DOWNLOAD</button>
             <button class="close-btn" onclick="closeMemory()" style="background:#333; color:white;">CLOSE</button>
         </div>
-    </div>
+    </div> -->
 
-    <div class="ui-container">
-        <div class="orb-wrapper">
-            <div class="ring ring-1"></div>
-            <div class="ring ring-2"></div>
-            <div class="camera-orb">
-                <div class="shine"></div>
-                <div id="xbox-logo" class="placeholder-text">X</div>
-                <video id="video" autoplay playsinline muted></video>
-            </div>
+    <div class="app">
+        <div class="layer bg"></div>
+
+        <div class="screen" id="screen">
+            <img id="fallback" src="maket/screen.png" alt="" />
+            <video id="video" autoplay playsinline muted></video>
+
+    <!-- сюда рисуем fisheye -->
+            <canvas id="fx" width="720" height="720"></canvas>
+
+            <div class="screenFx"></div>
         </div>
 
-        <div class="menu-list">
-            <div class="menu-item active" id="start-btn">
-                <div class="menu-bubble"></div>
-                <span>ACTIVATE CAM</span>
-            </div>
+        <div class="layer body"></div>
 
-            <div class="menu-item" id="memory-btn">
-                <div class="menu-bubble"></div>
-                <span>MEMORY</span>
-            </div>
-
-            <div class="menu-item" id="share-btn" style="display: none;">
-                <div class="menu-bubble"></div>
-                <span>SHARE STORY</span>
-            </div>
-        </div>
-        <div class="status-bar">SYSTEM READY // ONLINE</div>
+        <button class="btn big" id="start-btn"></button>
+        <button class="btn small s1" id="memory-btn"></button>
+        <button class="btn small s2" id="share-btn"></button>
+        <button class="btn small s3" data-action="back"></button>
+        <button class="btn small s4" data-action="ok"></button>
     </div>
 
     <script>
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
+        const fallback = document.getElementById('fallback');
         const startBtn = document.getElementById('start-btn');
         const shareBtn = document.getElementById('share-btn');
         const memoryBtn = document.getElementById('memory-btn');
@@ -247,19 +163,28 @@
         tg.expand();
 
         startBtn.onclick = async () => {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: "user" }, 
-                    audio: false 
-                });
-                video.srcObject = stream;
-                await video.play();
-                logo.style.display = 'none';
-                startBtn.querySelector('span').innerText = "LIVE FEED";
-                shareBtn.style.display = 'flex';
-            } catch (err) {
-                tg.showAlert("Камера недоступна: " + err.message);
-            }
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "user" },
+            audio: false
+            });
+
+            video.srcObject = stream;
+            await video.play();
+
+            // ВОТ ЭТОГО СЕЙЧАС НЕ ХВАТАЕТ:
+            fallback.style.display = 'none';
+            video.style.display = 'block';
+
+            startBtn.classList.add('active');
+            shareBtn.style.display = 'block';
+        } catch (err) {
+            // камера не доступна — оставляем fallback
+            video.style.display = 'none';
+            fallback.style.display = 'block';
+
+            (tg?.showAlert ? tg.showAlert : alert)("Камера недоступна: " + err.message);
+        }
         };
 
         function capture() {
